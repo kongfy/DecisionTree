@@ -53,7 +53,7 @@ public class DecisionTree extends Classifier {
     	root = build_decision_tree(set, attr_index);
     }
     
-    public double[] kill_missing_data() {
+    private double[] kill_missing_data() {
     	int num = _isCategory.length - 1;
     	double[] defaults = new double[num];
     	
@@ -250,46 +250,30 @@ public class DecisionTree extends Classifier {
     }
     
     private int attribute_selection(TreeNode node) {
+    	double reference_value = _isClassification ? 0 : -1;
+    	int selected_attribute = -1;
     	if (_isClassification) {
-    		double reference_value = 0;
-        	int max_attribute = -1;
         	for (int attribute : node.attr_index) {
-        		double temp = gain_ratio_use_attribute(node.set, attribute);
+        		double temp = gain_ratio_use_discrete_attribute(node.set, attribute);
         		if (temp > reference_value) {
         			reference_value = temp;
-        			max_attribute = attribute;
+        			selected_attribute = attribute;
         		}
         	}
-        	return max_attribute;
     	} else {
-    		double reference_value = -1;
-        	int min_attribute = -1;
         	for (int attribute : node.attr_index) {
         		double temp = mse_use_attribute(node.set, attribute);
         		if (reference_value < 0 || temp < reference_value) {
         			reference_value = temp;
-        			min_attribute = attribute;
+        			selected_attribute = attribute;
         		}
         	}
-        	return min_attribute;
     	}
-    	
-    }
-    
-    //信息增益 ID3
-    private double information_gain_use_attribute(int[] set, int attribute) {
-    	double entropy_before_split = entropy(set);
-    	
-    	double entropy_after_split = 0;
-    	for (int[] sub_set : split_with_attribute(set, attribute, null)) {
-    		entropy_after_split += (double)sub_set.length / set.length * entropy(sub_set);
-    	}
-    	
-    	return entropy_before_split - entropy_after_split;
+    	return selected_attribute;
     }
     
     //增益率 C4.5
-    private double gain_ratio_use_attribute(int[] set, int attribute) {
+    private double gain_ratio_use_discrete_attribute(int[] set, int attribute) {
     	double entropy_before_split = entropy(set);
     	
     	double entropy_after_split = 0;
@@ -299,6 +283,19 @@ public class DecisionTree extends Classifier {
     		double p = (double)sub_set.length / set.length;
     		split_information += - p * Math.log(p);
     	}
+    	
+    	return (entropy_before_split - entropy_after_split) / split_information;
+    }
+    
+    private double gain_ratio_use_numerical_attribute(int[] set, int attribute, int[] part_a, int[] part_b) {
+    	double entropy_before_split = entropy(set);
+    	double entropy_after_split = (part_a.length * entropy(part_a) + part_b.length * entropy(part_b)) / set.length;
+    	
+    	double split_information = 0;
+    	double p = (double)part_a.length / set.length;
+    	split_information += - p * Math.log(p);
+    	p = (double)part_b.length / set.length;
+    	split_information += - p * Math.log(p);
     	
     	return (entropy_before_split - entropy_after_split) / split_information;
     }
@@ -353,7 +350,7 @@ public class DecisionTree extends Classifier {
     		}
     		Arrays.sort(points);
     		
-    		double entropy = -1;
+    		double reference_value = _isClassification ? 0 : -1;
     		double best_split_point = 0;
     		int[][] result = new int[2][];
     		for (int i = 0; i < points.length - 1; ++i) {
@@ -368,13 +365,22 @@ public class DecisionTree extends Classifier {
     				sub_set_b[j] = set[j + i + 1];
     			}
     			
-    			double temp = ((double)sub_set_a.length / set.length) * entropy(sub_set_a)
-    					+ ((double)sub_set_b.length / set.length) * entropy(sub_set_b);
-    			if (entropy < 0 || temp < entropy) {
-    				entropy = temp;
-    				best_split_point = split_point;
-    				result[0] = sub_set_a;
-    				result[1] = sub_set_b;
+    			if (_isClassification) {
+    				double temp = gain_ratio_use_numerical_attribute(set, attribute, sub_set_a, sub_set_b);
+        			if (temp > reference_value) {
+        				reference_value = temp;
+        				best_split_point = split_point;
+        				result[0] = sub_set_a;
+        				result[1] = sub_set_b;
+        			}
+    			} else {
+    				double temp = (sub_set_a.length * mse(sub_set_a) + sub_set_b.length * mse(sub_set_b)) / set.length;
+    				if (reference_value < 0 || temp < reference_value) {
+    					reference_value = temp;
+    					best_split_point = split_point;
+    					result[0] = sub_set_a;
+    					result[1] = sub_set_b;
+    				}
     			}
     		}
     		if (node != null) {
