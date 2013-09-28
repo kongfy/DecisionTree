@@ -23,6 +23,7 @@ public class DecisionTree extends Classifier {
     private double[][] _features;
     private boolean[] _isCategory;
     private double[] _labels;
+    private double[] _defaults;
     
     private TreeNode root;
 
@@ -46,11 +47,78 @@ public class DecisionTree extends Classifier {
         	attr_index[i] = i;
         }
         
+        //处理缺失属性
+        _defaults = kill_missing_data();
+        
     	root = build_decision_tree(set, attr_index);
+    }
+    
+    public double[] kill_missing_data() {
+    	int num = _isCategory.length - 1;
+    	double[] defaults = new double[num];
+    	
+    	for (int i = 0; i < defaults.length; ++i) {
+    		if (_isCategory[i]) {
+    			//离散属性取最多的值
+    	    	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
+    	    	for (int j = 0; j < _features.length; ++j) {
+    	    		double feature = _features[j][i];
+    	    		if (!Double.isNaN(feature)) {
+    	    			if (counter.get(feature) == null) {
+        	    			counter.put(feature, 1);
+        	    		} else {
+        	    			int count = counter.get(feature) + 1;
+        	    			counter.put(feature, count);
+        	    		}
+    	    		}
+    	    	}
+    	    	
+    	    	int max_time = 0;
+    	    	double value = 0;
+    	    	Iterator<Double> iterator = counter.keySet().iterator();
+    	    	while (iterator.hasNext()) {
+    	    		double key = iterator.next();
+    	    		int count = counter.get(key);
+    	    		if (count > max_time) {
+    	    			max_time = count;
+    	    			value = key;
+    	    		}
+    	    	}
+    	    	defaults[i] = value;
+    		} else {
+    			//连续属性取平均值
+    			int count = 0;
+    			double total = 0;
+    			for (int j = 0; j < _features.length; ++j) {
+    				if (!Double.isNaN(_features[j][i])) {
+    					count++;
+    					total += _features[j][i];
+    				}
+    			}
+    			defaults[i] = total / count;
+    		}
+    	}
+    	
+    	//代换
+    	for (int i = 0; i < _features.length; ++i) {
+    		for (int j = 0; j < defaults.length; ++j) {
+    			if (Double.isNaN(_features[i][j])) {
+    				_features[i][j] = defaults[j];
+    			}
+    		}
+    	}
+    	return defaults;
     }
 
     @Override
     public double predict(double[] features) {
+    	//处理缺失属性
+    	for (int i = 0; i < features.length; ++i) {
+    		if (Double.isNaN(features[i])) {
+    			features[i] = _defaults[i];
+    		}
+    	}
+    	
         double anser = predict_with_decision_tree(features, root);
         //System.out.println(anser);
         return anser;
@@ -217,7 +285,6 @@ public class DecisionTree extends Classifier {
     		entropy_after_split += (double)sub_set.length / set.length * entropy(sub_set);
     	}
     	
-    	//System.out.printf("%f %f\n", entropy_before_split, entropy_after_split);
     	return entropy_before_split - entropy_after_split;
     }
     
@@ -226,14 +293,14 @@ public class DecisionTree extends Classifier {
     	double entropy_before_split = entropy(set);
     	
     	double entropy_after_split = 0;
-    	double splite_information = 0;
+    	double split_information = 0;
     	for (int[] sub_set : split_with_attribute(set, attribute, null)) {
     		entropy_after_split += (double)sub_set.length / set.length * entropy(sub_set);
     		double p = (double)sub_set.length / set.length;
-    		splite_information += - p * Math.log(p);
+    		split_information += - p * Math.log(p);
     	}
     	
-    	return (entropy_before_split - entropy_after_split) / splite_information;
+    	return (entropy_before_split - entropy_after_split) / split_information;
     }
     
     private int[][] split_with_attribute(int[] set, int attribute, TreeNode node) {
