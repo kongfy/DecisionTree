@@ -344,26 +344,31 @@ public class DecisionTree extends Classifier {
     		return result;
     	} else {
     		//Á¬ĞøÊôĞÔ
-    		double[] points = new double[set.length];
-    		for (int i = 0; i < set.length; ++i) {
-    			points[i] = _features[set[i]][attribute];
-    		}
-    		Arrays.sort(points);
-    		
-    		double reference_value = _isClassification ? 0 : -1;
-    		double best_split_point = 0;
-    		int[][] result = new int[2][];
-    		for (int i = 0; i < points.length - 1; ++i) {
-    			double split_point = (points[i] + points[i + 1]) / 2;
-    			int[] sub_set_a = new int[i + 1];
-    			int[] sub_set_b = new int[set.length - i - 1];
-    			
-    			for (int j = 0; j < sub_set_a.length; ++j) {
-    				sub_set_a[j] = set[j];
-    			}
-    			for (int j = 0; j < sub_set_b.length; ++j) {
-    				sub_set_b[j] = set[j + i + 1];
-    			}
+    		int[] ordered_set = set.clone();
+            for (int i = 0; i < ordered_set.length; i++) {
+                for (int j = i + 1; j < ordered_set.length; j++) {
+                    if (_features[ordered_set[i]][attribute] > _features[ordered_set[j]][attribute]) {
+                        int temp = ordered_set[i];
+                        ordered_set[i] = ordered_set[j];
+                        ordered_set[j] = temp;
+                    }
+                }
+            }
+            
+            double reference_value = _isClassification ? 0 : -1;
+            double best_split_point = 0;
+            int[][] result = new int[2][];
+            for (int i = 0; i < ordered_set.length - 1; ++i) {
+                double split_point = (_features[ordered_set[i]][attribute] + _features[ordered_set[i + 1]][attribute]) / 2;
+                int[] sub_set_a = new int[i + 1];
+                int[] sub_set_b = new int[set.length - i - 1];
+                
+                for (int j = 0; j < sub_set_a.length; ++j) {
+                    sub_set_a[j] = ordered_set[j];
+                }
+                for (int j = 0; j < sub_set_b.length; ++j) {
+                    sub_set_b[j] = ordered_set[j + i + 1];
+                }
     			
     			if (_isClassification) {
     				double temp = gain_ratio_use_numerical_attribute(set, attribute, sub_set_a, sub_set_b);
