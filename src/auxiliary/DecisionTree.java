@@ -17,6 +17,17 @@ class TreeNode {
 	TreeNode[] childrenNodes;
 }
 
+class SplitData {
+	int split_attr;
+	double[] split_points;
+	int[][] split_sets;
+}
+
+class BundleData {
+	double floatValue;
+	SplitData split_info;
+}
+
 public class DecisionTree extends Classifier {
 
     private boolean _isClassification;
@@ -189,13 +200,14 @@ public class DecisionTree extends Classifier {
     	}
     	
     	//寻找最优切割属性
-    	node.split_attr = attribute_selection(node);
+    	SplitData split_info = attribute_selection(node);
+    	node.split_attr = split_info.split_attr;
     	//没有可以分割的属性
     	if (node.split_attr < 0) {
     		return node;
     	}
-    	//System.out.println(node.split_attr);
-    	int[][] sub_sets = split_with_attribute(node.set, node.split_attr, node);
+    	
+    	node.split_points = split_info.split_points;
     	
     	//去掉已使用的属性
     	int[] child_attr_index = new int[attr_index.length - 1];
@@ -207,9 +219,9 @@ public class DecisionTree extends Classifier {
     	}
     	
     	//递归建立子节点
-    	node.childrenNodes = new TreeNode[sub_sets.length];
-    	for (int i = 0; i < sub_sets.length; ++i) {
-    		node.childrenNodes[i] = build_decision_tree(sub_sets[i], child_attr_index);
+    	node.childrenNodes = new TreeNode[split_info.split_sets.length];
+    	for (int i = 0; i < split_info.split_sets.length; ++i) {
+    		node.childrenNodes[i] = build_decision_tree(split_info.split_sets[i], child_attr_index);
     	}
     	
     	return node;
@@ -249,58 +261,34 @@ public class DecisionTree extends Classifier {
     	return temp / set.length;
     }
     
-    private int attribute_selection(TreeNode node) {
+    private SplitData attribute_selection(TreeNode node) {
+    	SplitData result = new SplitData();
+    	result.split_attr = -1;
     	double reference_value = _isClassification ? 0 : -1;
-    	int selected_attribute = -1;
     	if (_isClassification) {
         	for (int attribute : node.attr_index) {
-        		double temp = gain_ratio_use_discrete_attribute(node.set, attribute);
-        		if (temp > reference_value) {
-        			reference_value = temp;
-        			selected_attribute = attribute;
+        		BundleData gain_ratio_info = gain_ratio_use_attribute(node.set, attribute);
+        		if (gain_ratio_info.floatValue > reference_value) {
+        			reference_value = gain_ratio_info.floatValue;
+        			result = gain_ratio_info.split_info;
         		}
         	}
     	} else {
         	for (int attribute : node.attr_index) {
-        		double temp = mse_use_attribute(node.set, attribute);
-        		if (reference_value < 0 || temp < reference_value) {
-        			reference_value = temp;
-        			selected_attribute = attribute;
+        		BundleData mse_info = mse_use_attribute(node.set, attribute);
+        		if (reference_value < 0 || mse_info.floatValue < reference_value) {
+        			reference_value = mse_info.floatValue;
+        			result = mse_info.split_info;
         		}
         	}
     	}
-    	return selected_attribute;
+    	return result;
     }
     
-    //增益率 C4.5
-    private double gain_ratio_use_discrete_attribute(int[] set, int attribute) {
-    	double entropy_before_split = entropy(set);
+    private SplitData split_with_attribute(int[] set, int attribute) {
+    	SplitData result = new SplitData();
+    	result.split_attr = attribute;
     	
-    	double entropy_after_split = 0;
-    	double split_information = 0;
-    	for (int[] sub_set : split_with_attribute(set, attribute, null)) {
-    		entropy_after_split += (double)sub_set.length / set.length * entropy(sub_set);
-    		double p = (double)sub_set.length / set.length;
-    		split_information += - p * Math.log(p);
-    	}
-    	
-    	return (entropy_before_split - entropy_after_split) / split_information;
-    }
-    
-    private double gain_ratio_use_numerical_attribute(int[] set, int attribute, int[] part_a, int[] part_b) {
-    	double entropy_before_split = entropy(set);
-    	double entropy_after_split = (part_a.length * entropy(part_a) + part_b.length * entropy(part_b)) / set.length;
-    	
-    	double split_information = 0;
-    	double p = (double)part_a.length / set.length;
-    	split_information += - p * Math.log(p);
-    	p = (double)part_b.length / set.length;
-    	split_information += - p * Math.log(p);
-    	
-    	return (entropy_before_split - entropy_after_split) / split_information;
-    }
-    
-    private int[][] split_with_attribute(int[] set, int attribute, TreeNode node) {
     	if (_isCategory[attribute]) {
     		//离散属性
     		int amount_of_features = 0;
@@ -318,30 +306,26 @@ public class DecisionTree extends Classifier {
         	}
         	
         	//记录切割点
-        	if (node != null) {
-        		node.split_points = new double[amount_of_features];
-        		Iterator<Double> iterator = index_recorder.keySet().iterator();
-        		
-        		while (iterator.hasNext()) {
-        			double key = iterator.next();
-        			int value = index_recorder.get(key);
-        			node.split_points[value] = key;
-        		}
-        	}
+    		result.split_points = new double[amount_of_features];
+    		Iterator<Double> iterator = index_recorder.keySet().iterator();
+    		
+    		while (iterator.hasNext()) {
+    			double key = iterator.next();
+    			int value = index_recorder.get(key);
+    			result.split_points[value] = key;
+    		}
         	
-        	int[][] result = new int[amount_of_features][];
+        	result.split_sets = new int[amount_of_features][];
         	int[] t_index = new int[amount_of_features];
         	for (int i = 0; i < amount_of_features; ++i) t_index[i] = 0;
         	
         	for (int item : set) {
         		int index = index_recorder.get(_features[item][attribute]);
-        		if (result[index] == null) {
-        			result[index] = new int[counter.get(_features[item][attribute])];
+        		if (result.split_sets[index] == null) {
+        			result.split_sets[index] = new int[counter.get(_features[item][attribute])];
         		}
-        		result[index][t_index[index]++] = item;
+        		result.split_sets[index][t_index[index]++] = item;
         	}
-        	
-    		return result;
     	} else {
     		//连续属性
     		int[] ordered_set = set.clone();
@@ -357,7 +341,7 @@ public class DecisionTree extends Classifier {
             
             double reference_value = _isClassification ? 0 : -1;
             double best_split_point = 0;
-            int[][] result = new int[2][];
+            result.split_sets = new int[2][];
             for (int i = 0; i < ordered_set.length - 1; ++i) {
                 double split_point = (_features[ordered_set[i]][attribute] + _features[ordered_set[i + 1]][attribute]) / 2;
                 int[] sub_set_a = new int[i + 1];
@@ -375,25 +359,23 @@ public class DecisionTree extends Classifier {
         			if (temp > reference_value) {
         				reference_value = temp;
         				best_split_point = split_point;
-        				result[0] = sub_set_a;
-        				result[1] = sub_set_b;
+        				result.split_sets[0] = sub_set_a;
+        				result.split_sets[1] = sub_set_b;
         			}
     			} else {
     				double temp = (sub_set_a.length * mse(sub_set_a) + sub_set_b.length * mse(sub_set_b)) / set.length;
     				if (reference_value < 0 || temp < reference_value) {
     					reference_value = temp;
     					best_split_point = split_point;
-    					result[0] = sub_set_a;
-    					result[1] = sub_set_b;
+    					result.split_sets[0] = sub_set_a;
+    					result.split_sets[1] = sub_set_b;
     				}
     			}
     		}
-    		if (node != null) {
-    			node.split_points = new double[1];
-    			node.split_points[0] = best_split_point;
-    		}
-    		return result;
+    		result.split_points = new double[1];
+    		result.split_points[0] = best_split_point;
     	}
+    	return result;
     }
     
     private double entropy(int[] set) {
@@ -419,6 +401,37 @@ public class DecisionTree extends Classifier {
     	return result;
     }
     
+  //增益率 C4.5
+    private BundleData gain_ratio_use_attribute(int[] set, int attribute) {
+    	BundleData result = new BundleData();
+    	double entropy_before_split = entropy(set);
+    	
+    	double entropy_after_split = 0;
+    	double split_information = 0;
+    	result.split_info = split_with_attribute(set, attribute);
+    	for (int[] sub_set : result.split_info.split_sets) {
+    		entropy_after_split += (double)sub_set.length / set.length * entropy(sub_set);
+    		double p = (double)sub_set.length / set.length;
+    		split_information += - p * Math.log(p);
+    	}
+    	result.floatValue = (entropy_before_split - entropy_after_split) / split_information;
+    	return result;
+    }
+    
+    private double gain_ratio_use_numerical_attribute(int[] set, int attribute, int[] part_a, int[] part_b) {
+    	double entropy_before_split = entropy(set);
+    	double entropy_after_split = (part_a.length * entropy(part_a) + part_b.length * entropy(part_b)) / set.length;
+    	
+    	
+    	double split_information = 0;
+    	double p = (double)part_a.length / set.length;
+    	split_information += - p * Math.log(p);
+    	p = (double)part_b.length / set.length;
+    	split_information += - p * Math.log(p);
+    	
+    	return (entropy_before_split - entropy_after_split) / split_information;
+    }
+    
     private double mse(int[] set) {
     	double mean = mean_value(set);
     	
@@ -430,12 +443,14 @@ public class DecisionTree extends Classifier {
     	return temp / set.length;
     }
     
-    private double mse_use_attribute(int[] set, int attribute) {
-    	double mse = 0;
-    	for (int[] sub_set : split_with_attribute(set, attribute, null)) {
-    		mse += (double)sub_set.length / set.length * mse(sub_set);
+    private BundleData mse_use_attribute(int[] set, int attribute) {
+    	BundleData mse_info = new BundleData();
+    	mse_info.floatValue = 0;
+    	mse_info.split_info = split_with_attribute(set, attribute);
+    	for (int[] sub_set : mse_info.split_info.split_sets) {
+    		mse_info.floatValue += (double)sub_set.length / set.length * mse(sub_set);
     	}
-    	return mse;
+    	return mse_info;
     }
     
 }
