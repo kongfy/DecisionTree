@@ -4,10 +4,10 @@ import java.util.*;
 
 /**
  *
- * @author MF1333020 ¿×·±Óî
+ * @author MF1333020 å­”ç¹å®‡
  */
 
-//¾ö²ßÊ÷½Úµã½á¹¹
+//å†³ç­–æ ‘èŠ‚ç‚¹ç»“æ„
 class TreeNode {
 	int[] set;
 	int[] attr_index;
@@ -47,7 +47,7 @@ public class DecisionTree extends Classifier {
         	attr_index[i] = i;
         }
         
-        //´¦ÀíÈ±Ê§ÊôĞÔ
+        //å¤„ç†ç¼ºå¤±å±æ€§
         _defaults = kill_missing_data();
         
     	root = build_decision_tree(set, attr_index);
@@ -59,7 +59,7 @@ public class DecisionTree extends Classifier {
     	
     	for (int i = 0; i < defaults.length; ++i) {
     		if (_isCategory[i]) {
-    			//ÀëÉ¢ÊôĞÔÈ¡×î¶àµÄÖµ
+    			//ç¦»æ•£å±æ€§å–æœ€å¤šçš„å€¼
     	    	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     	    	for (int j = 0; j < _features.length; ++j) {
     	    		double feature = _features[j][i];
@@ -86,7 +86,7 @@ public class DecisionTree extends Classifier {
     	    	}
     	    	defaults[i] = value;
     		} else {
-    			//Á¬ĞøÊôĞÔÈ¡Æ½¾ùÖµ
+    			//è¿ç»­å±æ€§å–å¹³å‡å€¼
     			int count = 0;
     			double total = 0;
     			for (int j = 0; j < _features.length; ++j) {
@@ -99,7 +99,7 @@ public class DecisionTree extends Classifier {
     		}
     	}
     	
-    	//´ú»»
+    	//ä»£æ¢
     	for (int i = 0; i < _features.length; ++i) {
     		for (int j = 0; j < defaults.length; ++j) {
     			if (Double.isNaN(_features[i][j])) {
@@ -112,7 +112,7 @@ public class DecisionTree extends Classifier {
 
     @Override
     public double predict(double[] features) {
-    	//´¦ÀíÈ±Ê§ÊôĞÔ
+    	//å¤„ç†ç¼ºå¤±å±æ€§
     	for (int i = 0; i < features.length; ++i) {
     		if (Double.isNaN(features[i])) {
     			features[i] = _defaults[i];
@@ -132,7 +132,7 @@ public class DecisionTree extends Classifier {
     	double feature = features[node.split_attr];
     	
     	if (_isCategory[node.split_attr]) {
-    		//ÀëÉ¢ÊôĞÔ
+    		//ç¦»æ•£å±æ€§
     		int branch = -1;
         	for (int i = 0; i < node.split_points.length; ++i) {
         		if (node.split_points[i] == feature) {
@@ -147,7 +147,7 @@ public class DecisionTree extends Classifier {
         		return predict_with_decision_tree(features, node.childrenNodes[branch]);
         	}
     	} else {
-    		//Á¬ĞøÊôĞÔ
+    		//è¿ç»­å±æ€§
     		if (feature < node.split_points[0]) {
     			return predict_with_decision_tree(features, node.childrenNodes[0]);
     		} else {
@@ -164,7 +164,7 @@ public class DecisionTree extends Classifier {
     	node.label = 0;
     	node.childrenNodes = null;
     	
-    	//¶¼ÎªÍ¬Àà·µ»ØÖ±½Ó·µ»Ø
+    	//éƒ½ä¸ºåŒç±»è¿”å›ç›´æ¥è¿”å›
     	double label = _labels[node.set[0]];
     	boolean flag = true;
     	for (int i = 0; i < node.set.length; ++i) {
@@ -178,7 +178,7 @@ public class DecisionTree extends Classifier {
     		return node;
     	}
     	
-    	//Ã»ÓĞ¿ÉÓÃÊôĞÔ±ê¼ÇÎª´ó¶àÊı(ÀëÉ¢)»òÆ½¾ùÖµ(Á¬Ğø)
+    	//æ²¡æœ‰å¯ç”¨å±æ€§æ ‡è®°ä¸ºå¤§å¤šæ•°(ç¦»æ•£)æˆ–å¹³å‡å€¼(è¿ç»­)
     	if (_isClassification) {
 			node.label = most_label(set);
 		} else {
@@ -188,16 +188,16 @@ public class DecisionTree extends Classifier {
     		return node;
     	}
     	
-    	//Ñ°ÕÒ×îÓÅÇĞ¸îÊôĞÔ
+    	//å¯»æ‰¾æœ€ä¼˜åˆ‡å‰²å±æ€§
     	node.split_attr = attribute_selection(node);
-    	//Ã»ÓĞ¿ÉÒÔ·Ö¸îµÄÊôĞÔ
+    	//æ²¡æœ‰å¯ä»¥åˆ†å‰²çš„å±æ€§
     	if (node.split_attr < 0) {
     		return node;
     	}
     	//System.out.println(node.split_attr);
     	int[][] sub_sets = split_with_attribute(node.set, node.split_attr, node);
     	
-    	//È¥µôÒÑÊ¹ÓÃµÄÊôĞÔ
+    	//å»æ‰å·²ä½¿ç”¨çš„å±æ€§
     	int[] child_attr_index = new int[attr_index.length - 1];
     	int t = 0;
     	for (int index : attr_index) {
@@ -206,7 +206,7 @@ public class DecisionTree extends Classifier {
     		}
     	}
     	
-    	//µİ¹é½¨Á¢×Ó½Úµã
+    	//é€’å½’å»ºç«‹å­èŠ‚ç‚¹
     	node.childrenNodes = new TreeNode[sub_sets.length];
     	for (int i = 0; i < sub_sets.length; ++i) {
     		node.childrenNodes[i] = build_decision_tree(sub_sets[i], child_attr_index);
@@ -272,7 +272,7 @@ public class DecisionTree extends Classifier {
     	return selected_attribute;
     }
     
-    //ÔöÒæÂÊ C4.5
+    //å¢ç›Šç‡ C4.5
     private double gain_ratio_use_discrete_attribute(int[] set, int attribute) {
     	double entropy_before_split = entropy(set);
     	
@@ -302,7 +302,7 @@ public class DecisionTree extends Classifier {
     
     private int[][] split_with_attribute(int[] set, int attribute, TreeNode node) {
     	if (_isCategory[attribute]) {
-    		//ÀëÉ¢ÊôĞÔ
+    		//ç¦»æ•£å±æ€§
     		int amount_of_features = 0;
     		HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     		HashMap<Double, Integer> index_recorder = new HashMap<Double, Integer>();
@@ -317,7 +317,7 @@ public class DecisionTree extends Classifier {
         		}
         	}
         	
-        	//¼ÇÂ¼ÇĞ¸îµã
+        	//è®°å½•åˆ‡å‰²ç‚¹
         	if (node != null) {
         		node.split_points = new double[amount_of_features];
         		Iterator<Double> iterator = index_recorder.keySet().iterator();
@@ -343,7 +343,7 @@ public class DecisionTree extends Classifier {
         	
     		return result;
     	} else {
-    		//Á¬ĞøÊôĞÔ
+    		//è¿ç»­å±æ€§
     		int[] ordered_set = set.clone();
             for (int i = 0; i < ordered_set.length; i++) {
                 for (int j = i + 1; j < ordered_set.length; j++) {
