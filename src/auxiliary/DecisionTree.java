@@ -269,8 +269,8 @@ public class DecisionTree extends Classifier {
     	result.split_attr = -1;
     	
     	//前剪枝
-    	double reference_value = _isClassification ? 0.2 : -1;
-    	if (node.set.length < 10) return result;
+    	double reference_value = _isClassification ? 0.05 : -1;
+    	if (node.set.length < 7) return result;
     	
     	if (_isClassification) {
         	for (int attribute : node.attr_index) {
