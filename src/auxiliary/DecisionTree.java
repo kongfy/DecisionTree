@@ -1,5 +1,6 @@
 package auxiliary;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -341,31 +342,29 @@ public class DecisionTree extends Classifier {
         	}
     	} else {
     		//连续属性
-    		int[] ordered_set = set.clone();
-            for (int i = 0; i < ordered_set.length; i++) {
-                for (int j = i + 1; j < ordered_set.length; j++) {
-                    if (_features[ordered_set[i]][attribute] > _features[ordered_set[j]][attribute]) {
-                        int temp = ordered_set[i];
-                        ordered_set[i] = ordered_set[j];
-                        ordered_set[j] = temp;
-                    }
-                }
-            }
+    		double[] features = new double[set.length];
+    		for (int i = 0; i < features.length; ++i) {
+    			features[i] = _features[set[i]][attribute];
+    		}
+    		Arrays.sort(features);
             
             double reference_value = _isClassification ? 0 : -1;
             double best_split_point = 0;
             result.split_sets = new int[2][];
-            for (int i = 0; i < ordered_set.length - 1; ++i) {
-            	if (_features[ordered_set[i]][attribute] == _features[ordered_set[i + 1]][attribute]) continue;
-                double split_point = (_features[ordered_set[i]][attribute] + _features[ordered_set[i + 1]][attribute]) / 2;
+            for (int i = 0; i < features.length - 1; ++i) {
+            	if (features[i] == features[i + 1]) continue;
+                double split_point = (features[i] + features[i + 1]) / 2;
                 int[] sub_set_a = new int[i + 1];
                 int[] sub_set_b = new int[set.length - i - 1];
                 
-                for (int j = 0; j < sub_set_a.length; ++j) {
-                    sub_set_a[j] = ordered_set[j];
-                }
-                for (int j = 0; j < sub_set_b.length; ++j) {
-                    sub_set_b[j] = ordered_set[j + i + 1];
+                int a_index = 0;
+                int b_index = 0;
+                for (int j = 0; j < set.length; ++j) {
+                	if (_features[set[j]][attribute] < split_point) {
+                		sub_set_a[a_index++] = set[j];
+                	} else {
+                		sub_set_b[b_index++] = set[j];
+                	}
                 }
     			
     			if (_isClassification) {
