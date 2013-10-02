@@ -1,6 +1,5 @@
 package auxiliary;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -10,25 +9,27 @@ import java.util.*;
 
 //决策树节点结构
 class TreeNode {
-	int[] set;
-	int[] attr_index;
-	double label;
-	int split_attr;
-	double[] split_points;
-	TreeNode[] childrenNodes;
+	int[] set;                         //元组下标集合
+	int[] attr_index;                  //可用属性下标集合
+	double label;                      //标签
+	int split_attr;                    //该节点用于分割的属性下标
+	double[] split_points;             //切割点 离散属性为多值，连续属性只有一个值
+	TreeNode[] childrenNodes;          //子节点
 }
 
+//存储分割信息
 class SplitData {
 	int split_attr;
 	double[] split_points;
-	int[][] split_sets;
+	int[][] split_sets;                //分割后新的元组集合的数组
 }
 
 class BundleData {
-	double floatValue;
+	double floatValue;                 //存储增益率或MSE
 	SplitData split_info;
 }
 
+//当分割出现错误时抛出此异常
 class SplitException extends Exception {
 }
 
@@ -134,9 +135,7 @@ public class DecisionTree extends Classifier {
     		}
     	}
     	
-        double anser = predict_with_decision_tree(features, root);
-        //System.out.println(anser);
-        return anser;
+        return predict_with_decision_tree(features, root);
     }
     
     private double predict_with_decision_tree(double[] features, TreeNode node) {
@@ -157,7 +156,7 @@ public class DecisionTree extends Classifier {
         	}
         	
         	if (branch < 0) {
-        		return node.label;
+        		return node.label; //不存在的属性取父节点元组的标签，减少叶子结点
         	} else {
         		return predict_with_decision_tree(features, node.childrenNodes[branch]);
         	}
@@ -231,6 +230,7 @@ public class DecisionTree extends Classifier {
     	return node;
     }
     
+    //给定元组集合中出现最多的标签
     private double most_label(int[] set) {
     	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     	for (int item : set) {
@@ -257,6 +257,7 @@ public class DecisionTree extends Classifier {
     	return label;
     }
     
+    //给定元组集合的标签平均值
     private double mean_value(int[] set) {
     	double temp = 0;
     	for (int index : set) {
@@ -393,6 +394,7 @@ public class DecisionTree extends Classifier {
     	return result;
     }
     
+    //计算给定元组集合的熵
     private double entropy(int[] set) {
     	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     	for (int item : set) {
