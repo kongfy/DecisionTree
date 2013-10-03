@@ -147,19 +147,13 @@ public class DecisionTree extends Classifier {
     	
     	if (_isCategory[node.split_attr]) {
     		//离散属性
-    		int branch = -1;
         	for (int i = 0; i < node.split_points.length; ++i) {
         		if (node.split_points[i] == feature) {
-        			branch = i;
-        			break;
+        			return predict_with_decision_tree(features, node.childrenNodes[i]);
         		}
         	}
         	
-        	if (branch < 0) {
-        		return node.label; //不存在的属性取父节点元组的标签，减少叶子结点
-        	} else {
-        		return predict_with_decision_tree(features, node.childrenNodes[branch]);
-        	}
+        	return node.label; //不存在的属性取父节点元组的标签，减少叶子结点
     	} else {
     		//连续属性
     		if (feature < node.split_points[0]) {
@@ -212,13 +206,18 @@ public class DecisionTree extends Classifier {
     	
     	node.split_points = split_info.split_points;
     	
-    	//去掉已使用的属性
-    	int[] child_attr_index = new int[attr_index.length - 1];
-    	int t = 0;
-    	for (int index : attr_index) {
-    		if (index != node.split_attr) {
-    			child_attr_index[t++] = index;
-    		}
+    	//去掉已使用的离散属性，连续属性不做删除
+    	int[] child_attr_index = null;
+    	if (_isCategory[node.split_attr]) {
+    		child_attr_index = new int[attr_index.length - 1];
+        	int t = 0;
+        	for (int index : attr_index) {
+        		if (index != node.split_attr) {
+        			child_attr_index[t++] = index;
+        		}
+        	}
+    	} else {
+    		child_attr_index = node.attr_index.clone();
     	}
     	
     	//递归建立子节点
