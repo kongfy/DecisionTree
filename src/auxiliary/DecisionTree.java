@@ -9,7 +9,7 @@ import java.util.*;
 
 //决策树节点结构
 class TreeNode {
-	int[] set;                         //元组下标集合
+	int[] set;                         //样本下标集合
 	int[] attr_index;                  //可用属性下标集合
 	double label;                      //标签
 	int split_attr;                    //该节点用于分割的属性下标
@@ -21,7 +21,7 @@ class TreeNode {
 class SplitData {
 	int split_attr;
 	double[] split_points;
-	int[][] split_sets;                //分割后新的元组集合的数组
+	int[][] split_sets;                //分割后新的样本集合的数组
 }
 
 class BundleData {
@@ -153,7 +153,7 @@ public class DecisionTree extends Classifier {
         		}
         	}
         	
-        	return node.label; //不存在的属性取父节点元组的标签，减少叶子结点
+        	return node.label; //不存在的属性取父节点样本的标签，减少叶子结点
     	} else {
     		//连续属性
     		if (feature < node.split_points[0]) {
@@ -229,7 +229,7 @@ public class DecisionTree extends Classifier {
     	return node;
     }
     
-    //给定元组集合中出现最多的标签
+    //给定样本中出现最多的标签
     private double most_label(int[] set) {
     	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     	for (int item : set) {
@@ -256,7 +256,7 @@ public class DecisionTree extends Classifier {
     	return label;
     }
     
-    //给定元组集合的标签平均值
+    //给定样本的标签平均值
     private double mean_value(int[] set) {
     	double temp = 0;
     	for (int index : set) {
@@ -393,7 +393,7 @@ public class DecisionTree extends Classifier {
     	return result;
     }
     
-    //计算给定元组集合的熵
+    //计算给定样本集合的熵
     private double entropy(int[] set) {
     	HashMap<Double, Integer> counter = new HashMap<Double, Integer>();
     	for (int item : set) {
